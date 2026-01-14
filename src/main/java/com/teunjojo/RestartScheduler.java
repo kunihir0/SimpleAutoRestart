@@ -69,24 +69,19 @@ public class RestartScheduler {
                         plugin.getLogger().info("Message task triggered for delay: " + delay);
                         
                         if (getNextRestart() == nextRestart && !isRestartCanceled(nextRestart)) {
-                            Audience adventureAudience = plugin.adventure().all();
-                            plugin.getLogger().info("Audience retrieved: " + adventureAudience);
-                            plugin.getLogger().info("Audience class: " + adventureAudience.getClass().getName());
-                            
-                            // Check players specific audience
+                            Audience consoleAudience = plugin.adventure().console();
                             Audience playersAudience = plugin.adventure().players();
-                            plugin.getLogger().info("Players audience: " + playersAudience);
-
+                            
                             String messageRaw = _messages.get(delay);
-                            plugin.getLogger().info("Raw message: " + messageRaw);
-
-                            // Parse the message using MiniMessage
                             Component messageFinal = mm.deserialize(messageRaw);
-                            plugin.getLogger().info("Deserialized component: " + messageFinal);
-                            plugin.getLogger().info("Component string: " + messageFinal.toString());
-
-                            adventureAudience.sendMessage(messageFinal);
-                            plugin.getLogger().info("Message sent to audience.");
+                            
+                            // Send to console
+                            consoleAudience.sendMessage(messageFinal);
+                            
+                            // Send to players
+                            playersAudience.sendMessage(messageFinal);
+                            
+                            plugin.getLogger().info("Message sent to console and players.");
                         } else {
                             plugin.getLogger().info("Message skipped: Restart canceled or not next.");
                         }
