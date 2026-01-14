@@ -69,19 +69,22 @@ public class RestartScheduler {
                         plugin.getLogger().info("Message task triggered for delay: " + delay);
                         
                         if (getNextRestart() == nextRestart && !isRestartCanceled(nextRestart)) {
-                            Audience consoleAudience = plugin.adventure().console();
-                            Audience playersAudience = plugin.adventure().players();
-                            
-                            String messageRaw = _messages.get(delay);
-                            Component messageFinal = mm.deserialize(messageRaw);
-                            
-                            // Send to console
-                            consoleAudience.sendMessage(messageFinal);
-                            
-                            // Send to players
-                            playersAudience.sendMessage(messageFinal);
-                            
-                            plugin.getLogger().info("Message sent to console and players.");
+                            // Run on main thread to ensure player communication works
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                Audience consoleAudience = plugin.adventure().console();
+                                Audience playersAudience = plugin.adventure().players();
+
+                                String messageRaw = _messages.get(delay);
+                                Component messageFinal = mm.deserialize(messageRaw);
+
+                                // Send to console
+                                consoleAudience.sendMessage(messageFinal);
+
+                                // Send to players
+                                playersAudience.sendMessage(messageFinal);
+                                
+                                plugin.getLogger().info("Message sent to console and players (Main Thread).");
+                            });
                         } else {
                             plugin.getLogger().info("Message skipped: Restart canceled or not next.");
                         }
@@ -102,18 +105,20 @@ public class RestartScheduler {
                 @Override
                 public void run() {
                     if (getNextRestart() == nextRestart && !isRestartCanceled(nextRestart)) {
-                        Audience adventurePlayers = plugin.adventure().players();
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            Audience adventurePlayers = plugin.adventure().players();
 
-                        String titleRaw = _titles.get(delay);
-                        String subtitleRaw = _subtitles.get(delay);
+                            String titleRaw = _titles.get(delay);
+                            String subtitleRaw = _subtitles.get(delay);
 
-                        // Parse the message using MiniMessage
-                        Component titleFinal = mm.deserialize(titleRaw);
-                        Component subtitleFinal = mm.deserialize(subtitleRaw);
+                            // Parse the message using MiniMessage
+                            Component titleFinal = mm.deserialize(titleRaw);
+                            Component subtitleFinal = mm.deserialize(subtitleRaw);
 
-                        Title title = Title.title(titleFinal, subtitleFinal);
+                            Title title = Title.title(titleFinal, subtitleFinal);
 
-                        adventurePlayers.showTitle(title);
+                            adventurePlayers.showTitle(title);
+                        });
                     }
                 }
             }, (initialDelayInSeconds - delay) * 1000);
