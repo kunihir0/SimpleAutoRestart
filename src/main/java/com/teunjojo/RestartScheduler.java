@@ -3,7 +3,6 @@ package com.teunjojo;
 import org.bukkit.Bukkit;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -56,13 +55,8 @@ public class RestartScheduler {
 
                         String messageRaw = _messages.get(delay);
 
-                        // Parse the message using MiniMessage and convert legacy formatting
-                        Component messageLegacy = LegacyComponentSerializer.legacyAmpersand()
-                                .deserialize(messageRaw.replace('§', '&'));
-
-                        String serializedMessage = mm.serialize(messageLegacy).replace("\\", "");
-
-                        Component messageFinal = mm.deserialize(serializedMessage);
+                        // Parse the message using MiniMessage
+                        Component messageFinal = mm.deserialize(messageRaw);
 
                         adventureAudience.sendMessage(messageFinal);
                     }
@@ -84,17 +78,9 @@ public class RestartScheduler {
                         String titleRaw = _titles.get(delay);
                         String subtitleRaw = _subtitles.get(delay);
 
-                        // Parse the message using MiniMessage and convert legacy formatting
-                        Component titleLegacy = LegacyComponentSerializer.legacyAmpersand()
-                                .deserialize(titleRaw.replace('§', '&'));
-                        Component subtitleLegacy = LegacyComponentSerializer.legacyAmpersand()
-                                .deserialize(subtitleRaw.replace('§', '&'));
-
-                        String serializedTitle = mm.serialize(titleLegacy).replace("\\", "");
-                        String serializedSubtitle = mm.serialize(subtitleLegacy).replace("\\", "");
-
-                        Component titleFinal = mm.deserialize(serializedTitle);
-                        Component subtitleFinal = mm.deserialize(serializedSubtitle);
+                        // Parse the message using MiniMessage
+                        Component titleFinal = mm.deserialize(titleRaw);
+                        Component subtitleFinal = mm.deserialize(subtitleRaw);
 
                         Title title = Title.title(titleFinal, subtitleFinal);
 
