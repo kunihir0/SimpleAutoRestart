@@ -30,35 +30,69 @@ public class RestartScheduler {
 
     public boolean scheduleRestart(String _restartTime, Map<Long, String> _messages, Map<Long, String> _titles,
             Map<Long, String> _subtitles, List<String> _commands) {
-
         ZonedDateTime nextRestart = parseRestartTime(_restartTime);
+        
+        if (scheduleRestart(nextRestart, _messages, _titles, _subtitles, _commands)) {
+            plugin.getLogger().info("Reboot set for: " + _restartTime);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean scheduleRestart(ZonedDateTime nextRestart, Map<Long, String> _messages, Map<Long, String> _titles,
+            Map<Long, String> _subtitles, List<String> _commands) {
+        
         ZonedDateTime now = ZonedDateTime.now();
 
         // Check if a restart is already scheduled for this time
         if (isRestartScheduled(nextRestart)) {
-            plugin.getLogger().warning("A restart is already scheduled for: " + _restartTime);
+            plugin.getLogger().warning("A restart is already scheduled for: " + nextRestart);
             return false;
         }
 
         Duration duration = Duration.between(now, nextRestart);
         long initialDelayInSeconds = duration.getSeconds();
+        
+        plugin.getLogger().info("Scheduling restart for " + nextRestart + " (in " + initialDelayInSeconds + " seconds)");
 
         // Schedule the restart messages
         for (Long delay : _messages.keySet()) {
             if (delay > initialDelayInSeconds)
                 continue;
+                
+            plugin.getLogger().info("Scheduling message task for " + delay + "s before restart");
+            
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    if (getNextRestart() == nextRestart && !isRestartCanceled(nextRestart)) {
-                        Audience adventureAudience = plugin.adventure().all();
+                    try {
+                        plugin.getLogger().info("Message task triggered for delay: " + delay);
+                        
+                        if (getNextRestart() == nextRestart && !isRestartCanceled(nextRestart)) {
+                            Audience adventureAudience = plugin.adventure().all();
+                            plugin.getLogger().info("Audience retrieved: " + adventureAudience);
+                            plugin.getLogger().info("Audience class: " + adventureAudience.getClass().getName());
+                            
+                            // Check players specific audience
+                            Audience playersAudience = plugin.adventure().players();
+                            plugin.getLogger().info("Players audience: " + playersAudience);
 
-                        String messageRaw = _messages.get(delay);
+                            String messageRaw = _messages.get(delay);
+                            plugin.getLogger().info("Raw message: " + messageRaw);
 
-                        // Parse the message using MiniMessage
-                        Component messageFinal = mm.deserialize(messageRaw);
+                            // Parse the message using MiniMessage
+                            Component messageFinal = mm.deserialize(messageRaw);
+                            plugin.getLogger().info("Deserialized component: " + messageFinal);
+                            plugin.getLogger().info("Component string: " + messageFinal.toString());
 
-                        adventureAudience.sendMessage(messageFinal);
+                            adventureAudience.sendMessage(messageFinal);
+                            plugin.getLogger().info("Message sent to audience.");
+                        } else {
+                            plugin.getLogger().info("Message skipped: Restart canceled or not next.");
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().severe("Error sending restart message: " + e.getMessage());
+                        e.printStackTrace();
                     }
                 }
             }, (initialDelayInSeconds - delay) * 1000);
@@ -110,7 +144,6 @@ public class RestartScheduler {
         scheduledRestarts.add(nextRestart);
         canceledRestarts.remove(nextRestart);
 
-        plugin.getLogger().info("Reboot set for: " + _restartTime);
         return true;
     }
 

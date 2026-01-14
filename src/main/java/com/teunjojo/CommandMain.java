@@ -49,6 +49,8 @@ public class CommandMain implements TabExecutor {
                     sender.sendMessage(mm.deserialize("Usage: /" + label + " set <hour> <minute> [day]"));
 
                 return true;
+            case "now":
+                return commandNow(sender);
             case "reload":
                 return commandReload(sender);
             default:
@@ -72,6 +74,8 @@ public class CommandMain implements TabExecutor {
                 case "set":
                     completions.addAll(tabCompleteDate(args, 1));
                     break;
+                case "now":
+                    break;
                 case "reload":
                     break;
                 default:
@@ -79,6 +83,7 @@ public class CommandMain implements TabExecutor {
                     completions.add("resume");
                     completions.add("status");
                     completions.add("set");
+                    completions.add("now");
                     completions.add("reload");
                     break;
             }
@@ -86,6 +91,49 @@ public class CommandMain implements TabExecutor {
 
         }
         return null;
+    }
+
+    private boolean commandNow(Audience sender) {
+        long maxDelay = 0;
+
+        for (Long delay : plugin.getMessages().keySet()) {
+            if (delay > maxDelay) {
+                maxDelay = delay;
+            }
+        }
+        for (Long delay : plugin.getTitles().keySet()) {
+            if (delay > maxDelay) {
+                maxDelay = delay;
+            }
+        }
+        for (Long delay : plugin.getSubtitles().keySet()) {
+            if (delay > maxDelay) {
+                maxDelay = delay;
+            }
+        }
+
+        // If no countdown is configured, default to 10 seconds to allow for cancellation
+        if (maxDelay == 0) {
+            maxDelay = 10;
+        }
+
+        ZonedDateTime restartTime = ZonedDateTime.now().plusSeconds(maxDelay);
+
+        if (restartScheduler.isRestartScheduled(restartTime)) {
+            sender.sendMessage(mm.deserialize("<red>A restart is already scheduled for this time!"));
+            return false;
+        }
+
+        boolean success = restartScheduler.scheduleRestart(restartTime, plugin.getMessages(), plugin.getTitles(),
+                plugin.getSubtitles(), plugin.getCommands());
+
+        if (success) {
+            sender.sendMessage(mm.deserialize("Initiating immediate restart sequence (T-" + maxDelay + " seconds)."));
+        } else {
+            sender.sendMessage(mm.deserialize("<red>Failed to schedule immediate restart."));
+        }
+        
+        return true;
     }
 
     private boolean commandCancelRestart(Audience sender) {
